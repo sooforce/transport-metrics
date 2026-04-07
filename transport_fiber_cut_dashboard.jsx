@@ -124,14 +124,14 @@ function getDateRange(filter) {
   end.setHours(23, 59, 59, 999);
 
   if (filter === "daily") {
-    // Last 30 days
-    start.setDate(now.getDate() - 30);
+    // Last day (today only)
+    // start is already set to now, just need to set to beginning of today
   } else if (filter === "monthly") {
-    // Current calendar year (Jan 1 to now)
-    start.setMonth(0, 1); // January 1st
+    // Last month (30 days)
+    start.setDate(now.getDate() - 30);
   } else if (filter === "yearly") {
-    // Last 3 calendar years
-    start.setFullYear(now.getFullYear() - 2, 0, 1); // Jan 1, two years ago
+    // Last year (365 days)
+    start.setFullYear(now.getFullYear() - 1);
   } else if (filter === "all") {
     start.setFullYear(1970, 0, 1);
   }
