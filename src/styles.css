@@ -996,29 +996,50 @@ table {
   html, body {
     background: white !important;
     font-size: 11pt;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  body {
+    background-image: none !important;
+  }
+
+  #root {
+    min-height: auto !important;
+    height: auto !important;
   }
 
   .dashboard-page {
-    padding: 0 !important;
+    padding: 16px !important;
     background: white !important;
+    min-height: auto !important;
+    height: auto !important;
   }
 
   .dashboard-shell {
     gap: 16px;
+    display: block !important;
   }
 
-  /* Hide interactive elements */
+  .dashboard-shell > * {
+    margin-bottom: 16px;
+  }
+
+  /* Hide interactive elements only */
   .hero-tools,
-  .search-field,
-  .route-select,
-  .ui-button,
-  .tabs-list,
-  .custom-date-picker,
-  .action-group,
-  .incident-form,
   .toaster,
-  .feedback,
-  .timeline-node-tooltip {
+  .incident-form,
+  .timeline-node-tooltip,
+  .range-row {
+    display: none !important;
+  }
+
+  /* Hide buttons but keep section headers visible */
+  .ui-button {
+    display: none !important;
+  }
+
+  .action-group {
     display: none !important;
   }
 
@@ -1029,26 +1050,33 @@ table {
   .chart-card,
   .register-card {
     box-shadow: none !important;
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid #d1d5db !important;
     border-radius: 8px !important;
     page-break-inside: avoid;
     break-inside: avoid;
+    background: white !important;
+    backdrop-filter: none !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   .hero-panel {
     padding: 20px !important;
+    margin-bottom: 20px !important;
   }
 
   .hero-panel::after {
-    display: none;
+    display: none !important;
   }
 
   .hero-title {
-    font-size: 24pt !important;
+    font-size: 22pt !important;
   }
 
   .hero-subtitle {
     font-size: 10pt !important;
+    max-width: none !important;
   }
 
   .hero-badges {
@@ -1058,20 +1086,33 @@ table {
   .ui-badge {
     padding: 4px 10px !important;
     font-size: 8pt !important;
+    background: #f1f5f9 !important;
+    color: #334155 !important;
+  }
+
+  .ui-badge--solid {
+    background: #0f172a !important;
+    color: white !important;
   }
 
   /* Metrics grid print layout */
   .metrics-grid {
+    display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
     gap: 12px !important;
+    margin-bottom: 20px !important;
   }
 
   .metric-card {
     padding: 12px !important;
   }
 
+  .surface-body {
+    padding: 16px !important;
+  }
+
   .metric-value {
-    font-size: 18pt !important;
+    font-size: 16pt !important;
   }
 
   .metric-label {
@@ -1086,22 +1127,36 @@ table {
     display: none !important;
   }
 
+  .metric-row {
+    display: block !important;
+  }
+
   /* Charts print layout */
   .content-grid {
-    grid-template-columns: 1fr !important;
+    display: block !important;
+  }
+
+  .content-grid > * {
+    margin-bottom: 16px !important;
   }
 
   .chart-frame {
-    height: 200px !important;
+    height: 250px !important;
     background: transparent !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
   }
 
   .section-title {
-    font-size: 12pt !important;
+    font-size: 11pt !important;
   }
 
   .section-description {
     font-size: 9pt !important;
+  }
+
+  .surface-header {
+    padding: 16px 16px 8px !important;
   }
 
   /* Tables print layout */
@@ -1114,11 +1169,12 @@ table {
   .incident-table {
     min-width: 0 !important;
     font-size: 8pt !important;
+    width: 100% !important;
   }
 
   .incident-table th,
   .incident-table td {
-    padding: 8px 10px !important;
+    padding: 6px 8px !important;
     border-color: #e2e8f0 !important;
   }
 
@@ -1127,43 +1183,43 @@ table {
     font-size: 7pt !important;
   }
 
-  /* Timeline print adjustments */
-  .timeline-card {
-    page-break-inside: avoid;
-  }
-
-  .timeline-track {
-    height: 60px !important;
-  }
-
-  .timeline-node-dot {
-    width: 12px !important;
-    height: 12px !important;
-    border-width: 2px !important;
-  }
-
   /* Hide action columns in tables */
   .incident-table th:last-child,
   .incident-table td:last-child {
     display: none !important;
   }
 
-  /* Page header for print */
-  .hero-panel::before {
-    content: "Transport Metrics Report - Printed " attr(data-print-date);
-    display: block;
-    font-size: 8pt;
-    color: #64748b;
-    margin-bottom: 12px;
+  /* Timeline print adjustments */
+  .timeline-card {
+    page-break-inside: avoid;
   }
 
-  /* Footer with page numbers */
+  .timeline-container {
+    padding: 16px 0 !important;
+  }
+
+  .timeline-track {
+    height: 50px !important;
+  }
+
+  .timeline-node-dot {
+    width: 10px !important;
+    height: 10px !important;
+    border-width: 2px !important;
+  }
+
+  .timeline-legend {
+    margin-top: 16px !important;
+    padding-top: 12px !important;
+  }
+
+  /* Page settings */
   @page {
     margin: 1.5cm;
     size: A4;
   }
 
-  /* Ensure content fits on pages */
+  /* Page breaks */
   .register-card {
     page-break-before: always;
   }
