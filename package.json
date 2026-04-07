@@ -1,0 +1,68 @@
+{
+  "name": "transport-metrics-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "author": "Your Name",
+  "description": "Transport Metrics Dashboard - Fiber Cut Analysis",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "npm run build && electron-builder --dir",
+    "electron:build:win": "npm run build && electron-builder --win --dir",
+    "electron:build:linux": "npm run build && electron-builder --linux --dir",
+    "electron:build:all": "npm run build && electron-builder --win --linux --dir"
+  },
+  "dependencies": {
+    "jspdf": "^3.0.3",
+    "lucide-react": "^0.511.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^8.2.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "electron-squirrel-startup": "^1.0.0",
+    "vite": "^6.3.5",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.transport.metrics.dashboard",
+    "productName": "Transport Metrics Dashboard",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "public/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "public/icon.png",
+      "signAndEditExecutable": false
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": ["x64"]
+        }
+      ],
+      "category": "Utility",
+      "icon": "public/icon.png"
+    },
+    "forceCodeSigning": false
+  }
+}
