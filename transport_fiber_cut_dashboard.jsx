@@ -1,9 +1,73 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { Download, Activity, AlertTriangle, Cable, ShieldCheck, Clock3, TrendingUp, Search, Plus, Pencil, Trash2 } from "lucide-react";
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { Download, Activity, AlertTriangle, Cable, ShieldCheck, Clock3, TrendingUp, Search, Plus, Pencil, Trash2, CheckCircle, XCircle, Info, X } from "lucide-react";
 import { ResponsiveContainer, ComposedChart, Area, Line, CartesianGrid, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
 import jsPDF from "jspdf";
 
 const TabsContext = createContext({ value: "", onValueChange: () => {} });
+
+// Toast notification types and icons
+const toastIcons = {
+  success: CheckCircle,
+  error: XCircle,
+  info: Info,
+  warning: AlertTriangle,
+};
+
+function Toast({ id, type = "info", title, message, onDismiss }) {
+  const Icon = toastIcons[type] || Info;
+  
+  useEffect(() => {
+    const timer = setTimeout(() => onDismiss(id), 5000);
+    return () => clearTimeout(timer);
+  }, [id, onDismiss]);
+
+  return (
+    <div className={`toast toast--${type}`} role="alert">
+      <div className="toast-icon">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="toast-content">
+        <p className="toast-title">{title}</p>
+        {message && <p className="toast-message">{message}</p>}
+      </div>
+      <button 
+        className="toast-dismiss" 
+        onClick={() => onDismiss(id)}
+        aria-label="Dismiss notification"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function Toaster({ toasts, onDismiss }) {
+  if (toasts.length === 0) return null;
+  
+  return (
+    <div className="toaster" aria-live="polite" aria-label="Notifications">
+      {toasts.map((toast) => (
+        <Toast key={toast.id} {...toast} onDismiss={onDismiss} />
+      ))}
+    </div>
+  );
+}
+
+// Custom hook for toast management
+function useToast() {
+  const [toasts, setToasts] = useState([]);
+  
+  const addToast = useCallback(({ type = "info", title, message }) => {
+    const id = Date.now() + Math.random();
+    setToasts((current) => [...current, { id, type, title, message }]);
+  }, []);
+  
+  const dismissToast = useCallback((id) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
+  }, []);
+  
+  return { toasts, addToast, dismissToast };
+}
 
 function Card({ className = "", children }) {
   return <div className={`surface-card ${className}`.trim()}>{children}</div>;
@@ -711,6 +775,9 @@ export default function TransportFiberCutDashboard() {
   const [editingIncidentId, setEditingIncidentId] = useState("");
   const [formData, setFormData] = useState(emptyIncidentForm);
   const [formError, setFormError] = useState("");
+  
+  // Toast notification system
+  const { toasts, addToast, dismissToast } = useToast();
 
   // Save incidents to localStorage whenever they change
   useEffect(() => {
@@ -830,16 +897,31 @@ export default function TransportFiberCutDashboard() {
 
     if (validationError) {
       setFormError(validationError);
+      addToast({
+        type: "error",
+        title: "Validation Error",
+        message: validationError,
+      });
       return;
     }
 
     if (formMode === "edit") {
       setIncidents((current) => current.map((item) => (item.id === editingIncidentId ? candidate : item)));
+      addToast({
+        type: "success",
+        title: "Incident Updated",
+        message: `${candidate.id} has been successfully updated.`,
+      });
       resetFormToAdd();
       return;
     }
 
     setIncidents((current) => [candidate, ...current]);
+    addToast({
+      type: "success",
+      title: "New Incident Added",
+      message: `${candidate.id} on ${candidate.route} has been logged.`,
+    });
     setFormData(emptyIncidentForm);
     setFormError("");
   };
@@ -861,7 +943,13 @@ export default function TransportFiberCutDashboard() {
   };
 
   const deleteIncident = (incidentId) => {
+    const incident = incidents.find((item) => item.id === incidentId);
     setIncidents((current) => current.filter((item) => item.id !== incidentId));
+    addToast({
+      type: "info",
+      title: "Incident Deleted",
+      message: incident ? `${incident.id} has been removed.` : "Incident has been removed.",
+    });
     if (editingIncidentId === incidentId) {
       resetFormToAdd();
     }
@@ -945,14 +1033,25 @@ export default function TransportFiberCutDashboard() {
       }
 
       pdf.save(`fiber-cut-dashboard-${range}.pdf`);
+      addToast({
+        type: "success",
+        title: "PDF Exported",
+        message: `Report for ${range} view has been downloaded.`,
+      });
     } catch (error) {
       console.error(error);
       setExportError("PDF export failed. The dashboard remains usable, but the export step could not complete.");
+      addToast({
+        type: "error",
+        title: "Export Failed",
+        message: "PDF export could not complete. Please try again.",
+      });
     }
   };
 
   return (
     <div className="dashboard-page">
+      <Toaster toasts={toasts} onDismiss={dismissToast} />
       <div className="dashboard-shell">
         <div className="hero-panel">
           <div className="hero-layout">
