@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
-import { Download, Activity, AlertTriangle, Cable, ShieldCheck, Clock3, TrendingUp, Search, Plus, Pencil, Trash2, CheckCircle, XCircle, Info, X } from "lucide-react";
+import { Download, Activity, AlertTriangle, Cable, ShieldCheck, Clock3, TrendingUp, Search, Plus, Pencil, Trash2, CheckCircle, XCircle, Info, X, Calendar, GitCommitHorizontal } from "lucide-react";
 import { ResponsiveContainer, ComposedChart, Area, Line, CartesianGrid, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
 import jsPDF from "jspdf";
 
@@ -179,7 +179,7 @@ function formatMinutes(min) {
   return `${m}m`;
 }
 
-function getDateRange(filter) {
+function getDateRange(filter, customStart = null, customEnd = null) {
   const now = new Date(CURRENT_DATE);
   const start = new Date(now);
   const end = new Date(now);
@@ -187,7 +187,13 @@ function getDateRange(filter) {
   // Set end to end of today (23:59:59.999)
   end.setHours(23, 59, 59, 999);
 
-  if (filter === "daily") {
+  if (filter === "custom" && customStart && customEnd) {
+    const cs = new Date(customStart);
+    const ce = new Date(customEnd);
+    cs.setHours(0, 0, 0, 0);
+    ce.setHours(23, 59, 59, 999);
+    return { start: cs, end: ce };
+  } else if (filter === "daily") {
     // Last day (today only)
     // start is already set to now, just need to set to beginning of today
   } else if (filter === "monthly") {
@@ -641,8 +647,8 @@ function generateNextId(allIncidents) {
   return `FC-${year}-${String(max + 1).padStart(3, "0")}`;
 }
 
-function filterIncidents(items, range, search, routeFilter) {
-  const { start, end } = getDateRange(range);
+function filterIncidents(items, range, search, routeFilter, customStart = null, customEnd = null) {
+  const { start, end } = getDateRange(range, customStart, customEnd);
   const query = search.trim().toLowerCase();
 
   return items.filter((incident) => {
@@ -766,6 +772,8 @@ const saveIncidents = (incidents) => {
 export default function TransportFiberCutDashboard() {
   const [incidents, setIncidents] = useState(loadIncidents);
   const [range, setRange] = useState("monthly");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [forecastMethod, setForecastMethod] = useState("sma");
   const [topRouteMetric, setTopRouteMetric] = useState("cuts");
   const [search, setSearch] = useState("");
@@ -775,6 +783,7 @@ export default function TransportFiberCutDashboard() {
   const [editingIncidentId, setEditingIncidentId] = useState("");
   const [formData, setFormData] = useState(emptyIncidentForm);
   const [formError, setFormError] = useState("");
+  const [timelineRoute, setTimelineRoute] = useState("all");
   
   // Toast notification system
   const { toasts, addToast, dismissToast } = useToast();
@@ -791,11 +800,34 @@ export default function TransportFiberCutDashboard() {
   const routes = useMemo(() => ["all", ...Array.from(new Set(incidents.map((item) => item.route)))], [incidents]);
 
   const filtered = useMemo(
-    () => filterIncidents(incidents, range, search, routeFilter),
-    [incidents, range, search, routeFilter],
+    () => filterIncidents(incidents, range, search, routeFilter, customStartDate, customEndDate),
+    [incidents, range, search, routeFilter, customStartDate, customEndDate],
   );
 
   const summary = useMemo(() => calculateSummary(filtered), [filtered]);
+  
+  // Timeline data for visual incident timeline
+  const timelineData = useMemo(() => {
+    const targetRoute = timelineRoute === "all" ? null : timelineRoute;
+    const relevantIncidents = targetRoute 
+      ? incidents.filter((item) => item.route === targetRoute)
+      : incidents;
+    
+    if (relevantIncidents.length === 0) return { incidents: [], minDate: null, maxDate: null, routes: [] };
+    
+    const sorted = [...relevantIncidents].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const dates = sorted.map((item) => new Date(item.date));
+    const minDate = dates[0];
+    const maxDate = dates[dates.length - 1];
+    const uniqueRoutes = Array.from(new Set(sorted.map((item) => item.route)));
+    
+    return {
+      incidents: sorted,
+      minDate,
+      maxDate,
+      routes: uniqueRoutes,
+    };
+  }, [incidents, timelineRoute]);
 
   const previousFiltered = useMemo(() => {
     const previousRange = getPreviousDateRange(range);
@@ -1099,8 +1131,33 @@ export default function TransportFiberCutDashboard() {
                 <TabsTrigger value="monthly">Monthly</TabsTrigger>
                 <TabsTrigger value="yearly">Yearly</TabsTrigger>
                 <TabsTrigger value="all">All time</TabsTrigger>
+                <TabsTrigger value="custom">Custom</TabsTrigger>
               </TabsList>
             </Tabs>
+            
+            {range === "custom" && (
+              <div className="custom-date-picker">
+                <div className="date-field">
+                  <Calendar className="date-icon" />
+                  <Input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="date-input"
+                  />
+                </div>
+                <span className="date-separator">to</span>
+                <div className="date-field">
+                  <Calendar className="date-icon" />
+                  <Input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="date-input"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {exportError ? (
@@ -1164,6 +1221,95 @@ export default function TransportFiberCutDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Incident Timeline View */}
+        <Card className="chart-card timeline-card">
+          <CardHeader>
+            <CardTitle className="title-with-icon"><GitCommitHorizontal className="h-5 w-5" /> Incident Timeline</CardTitle>
+            <CardDescription>Visual timeline of incidents by route. Click on an incident to see details.</CardDescription>
+            <div className="action-group">
+              <select
+                value={timelineRoute}
+                onChange={(e) => setTimelineRoute(e.target.value)}
+                className="ui-select timeline-route-select"
+              >
+                {routes.map((route) => (
+                  <option key={route} value={route}>
+                    {route === "all" ? "All routes" : route}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {timelineData.incidents.length === 0 ? (
+              <div className="timeline-empty">
+                <p>No incidents to display for the selected route.</p>
+              </div>
+            ) : (
+              <div className="timeline-container">
+                <div className="timeline-header">
+                  <span className="timeline-date-label">
+                    {timelineData.minDate?.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
+                  </span>
+                  <span className="timeline-date-label">
+                    {timelineData.maxDate?.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
+                  </span>
+                </div>
+                <div className="timeline-track">
+                  <div className="timeline-line" />
+                  {timelineData.incidents.map((incident) => {
+                    const incidentDate = new Date(incident.date);
+                    const totalMs = timelineData.maxDate.getTime() - timelineData.minDate.getTime();
+                    const position = totalMs > 0 
+                      ? ((incidentDate.getTime() - timelineData.minDate.getTime()) / totalMs) * 100
+                      : 50;
+                    
+                    const severityClass = `timeline-node--${incident.severity || "medium"}`;
+                    
+                    return (
+                      <div
+                        key={incident.id}
+                        className={`timeline-node ${severityClass}`}
+                        style={{ left: `${Math.min(98, Math.max(2, position))}%` }}
+                        title={`${incident.id}\n${incident.date}\n${incident.route}\n${incident.cutType}\nDowntime: ${formatMinutes(incident.downtimeMin)}`}
+                      >
+                        <div className="timeline-node-dot" />
+                        <div className="timeline-node-tooltip">
+                          <strong>{incident.id}</strong>
+                          <span>{incident.date}</span>
+                          <span>{incident.route}</span>
+                          <span className="timeline-cause">{incident.cutType}</span>
+                          <span className={`timeline-severity timeline-severity--${incident.severity}`}>
+                            {incident.severity}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="timeline-legend">
+                  <div className="timeline-legend-item">
+                    <span className="timeline-legend-dot timeline-legend-dot--critical" />
+                    <span>Critical</span>
+                  </div>
+                  <div className="timeline-legend-item">
+                    <span className="timeline-legend-dot timeline-legend-dot--high" />
+                    <span>High</span>
+                  </div>
+                  <div className="timeline-legend-item">
+                    <span className="timeline-legend-dot timeline-legend-dot--medium" />
+                    <span>Medium</span>
+                  </div>
+                  <div className="timeline-legend-item">
+                    <span className="timeline-legend-dot timeline-legend-dot--low" />
+                    <span>Low</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card className="chart-card">
           <CardHeader>
