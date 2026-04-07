@@ -118,18 +118,28 @@ function formatMinutes(min) {
 function getDateRange(filter) {
   const now = new Date(CURRENT_DATE);
   const start = new Date(now);
+  const end = new Date(now);
+
+  // Set end to end of today (23:59:59.999)
+  end.setHours(23, 59, 59, 999);
 
   if (filter === "daily") {
+    // Last 30 days
     start.setDate(now.getDate() - 30);
   } else if (filter === "monthly") {
-    start.setMonth(now.getMonth() - 12);
+    // Current calendar year (Jan 1 to now)
+    start.setMonth(0, 1); // January 1st
   } else if (filter === "yearly") {
-    start.setFullYear(now.getFullYear() - 1);
+    // Last 3 calendar years
+    start.setFullYear(now.getFullYear() - 2, 0, 1); // Jan 1, two years ago
   } else if (filter === "all") {
-    start.setFullYear(1970);
+    start.setFullYear(1970, 0, 1);
   }
 
-  return { start, end: now };
+  // Set start to beginning of day (00:00:00.000)
+  start.setHours(0, 0, 0, 0);
+
+  return { start, end };
 }
 
 function getPreviousDateRange(filter) {
